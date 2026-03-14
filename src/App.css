@@ -4,6 +4,8 @@
   padding: 40px 24px 56px;
   overflow-x: clip;
   overflow-y: visible;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .app-shell {
@@ -1022,6 +1024,9 @@
   color: #8b949e;
   margin: -8px 0 14px;
   font-weight: 500;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .transactions-empty {
@@ -1262,6 +1267,12 @@ input[type="date"] {
 @media (max-width: 900px) {
   .app-panels {
     grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .app-panels > * {
+    min-width: 0;
+    max-width: 100%;
   }
 }
 
@@ -2357,6 +2368,9 @@ td.actions-col {
   color: #8b949e;
   margin: -6px 0 14px;
   line-height: 1.45;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .txn-field-wrap {
@@ -2544,6 +2558,11 @@ td.actions-col {
 @media (max-width: 480px) {
   .edit-btn-text {
     display: none;
+  }
+
+  /* Card layout uses full-width buttons; keep “Edit” visible */
+  .transactions-table-wrap td.actions-col .edit-btn-text {
+    display: inline;
   }
 }
 
@@ -2791,27 +2810,128 @@ td.actions-col {
     border-radius: 14px;
   }
 
+  /* Transaction list: stacked cards instead of a wide table */
   .transactions-table-wrap {
-    margin: 0 -6px;
-    padding: 0 6px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
+    margin: 0;
+    padding: 0;
+    overflow-x: visible;
   }
 
-  th,
-  td {
-    padding: 8px 8px;
-    font-size: 0.78rem;
+  .transactions-table-wrap table,
+  .transactions-table-wrap tbody,
+  .transactions-table-wrap tr,
+  .transactions-table-wrap td {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
-  th {
+  .transactions-table-wrap table {
+    display: block;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .transactions-table-wrap thead {
+    display: none;
+  }
+
+  .transactions-table-wrap tbody {
+    display: block;
+  }
+
+  .transactions-table-wrap tbody tr {
+    display: block;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    background: rgba(13, 17, 23, 0.55);
+    border: 1px solid rgba(240, 246, 252, 0.08);
+    overflow: hidden;
+  }
+
+  .transactions-table-wrap tbody tr.transactions-empty-row {
+    background: transparent;
+    border: none;
+    margin-bottom: 0;
+  }
+
+  .transactions-table-wrap td {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 10px 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(240, 246, 252, 0.06);
+    font-size: 0.8125rem;
+    text-align: left;
+  }
+
+  .transactions-table-wrap td:last-child {
+    border-bottom: none;
+  }
+
+  .transactions-table-wrap td::before {
+    content: attr(data-label);
+    flex: 0 0 34%;
+    max-width: 7.5rem;
     font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8b949e;
+    line-height: 1.35;
+    padding-top: 3px;
   }
 
-  .txn-desc-cell,
-  .txn-splits-cell {
-    max-width: 120px;
+  .transactions-table-wrap .txn-cell-value {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: right;
     word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+  }
+
+  .transactions-table-wrap td.transactions-empty {
+    display: block;
+    text-align: center;
+    border: none;
+    padding: 24px 16px;
+  }
+
+  .transactions-table-wrap td.transactions-empty::before {
+    display: none;
+  }
+
+  .transactions-table-wrap td.actions-col {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-top: 12px;
+    padding-bottom: 14px;
+  }
+
+  .transactions-table-wrap td.actions-col::before {
+    flex: none;
+    max-width: none;
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .transactions-table-wrap td.actions-col .txn-actions {
+    width: 100%;
+    justify-content: stretch;
+    flex-wrap: wrap;
+  }
+
+  .transactions-table-wrap td.actions-col .edit-btn,
+  .transactions-table-wrap td.actions-col .delete-btn {
+    flex: 1 1 calc(50% - 4px);
+    min-height: 44px;
+    justify-content: center;
+    box-sizing: border-box;
   }
 
   .accounts-panel {

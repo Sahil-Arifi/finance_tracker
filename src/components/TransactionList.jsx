@@ -125,7 +125,7 @@ export default function TransactionList({
           </thead>
           <tbody>
             {filteredTransactions.length === 0 && (
-              <tr>
+              <tr className="transactions-empty-row">
                 <td colSpan={6} className="transactions-empty">
                   No transactions in this view.
                 </td>
@@ -135,15 +135,28 @@ export default function TransactionList({
               const splitsText = splitSummary(t, savingsGoals);
               return (
                 <tr key={t.id}>
-                  <td>{t.date}</td>
-                  <td className="txn-desc-cell">{t.description?.trim() ? t.description : "—"}</td>
-                  <td>{t.category}</td>
-                  <td className={t.type === "income" ? "income-amount" : "expense-amount"}>
-                    {t.type === "income" ? "+" : "−"}
-                    {formatMoney(t.amount)}
+                  <td data-label="Date">
+                    <span className="txn-cell-value">{t.date}</span>
                   </td>
-                  <td className="txn-splits-cell">{splitsText || "—"}</td>
-                  <td className="actions-col">
+                  <td className="txn-desc-cell" data-label="Description">
+                    <span className="txn-cell-value">{t.description?.trim() ? t.description : "—"}</span>
+                  </td>
+                  <td data-label="Category">
+                    <span className="txn-cell-value">{t.category}</span>
+                  </td>
+                  <td
+                    className={t.type === "income" ? "income-amount" : "expense-amount"}
+                    data-label="Amount"
+                  >
+                    <span className="txn-cell-value">
+                      {t.type === "income" ? "+" : "−"}
+                      {formatMoney(t.amount)}
+                    </span>
+                  </td>
+                  <td className="txn-splits-cell" data-label="Splits">
+                    <span className="txn-cell-value">{splitsText || "—"}</span>
+                  </td>
+                  <td className="actions-col" data-label="Actions">
                     <div className="txn-actions">
                       <button
                         type="button"

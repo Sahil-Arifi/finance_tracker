@@ -12,6 +12,7 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* iOS: 16px+ on form controls avoids focus zoom */
