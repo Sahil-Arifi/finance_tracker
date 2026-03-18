@@ -1,8 +1,9 @@
-export const STORAGE_KEY = "finance-tracker:v1";
+const LEGACY_STORAGE_KEY = "finance-tracker:v1";
+export const STORAGE_KEY = "expensepilot:v1";
 
 export function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) {
       return { transactions: [], goals: [], accounts: [] };
     }

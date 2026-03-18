@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ExpensePilot icon">
+  <defs>
+    <linearGradient id="g" x1="72" y1="64" x2="456" y2="456" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#79c0ff"/>
+      <stop offset="1" stop-color="#a371f7"/>
+    </linearGradient>
+  </defs>
+  <!-- Leaf-style mark -->
+  <path
+    d="M452 60c-86 12-164 52-222 110C146 254 116 346 106 452c106-10 198-40 282-124 58-58 98-136 124-222z"
+    fill="url(#g)"
+    opacity="0.95"
+  />
+  <path
+    d="M168 344c48-8 96-30 138-72 43-43 64-90 72-138"
+    fill="none"
+    stroke="#0d1117"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.35"
+  />
+  <path
+    d="M176 344c48-8 94-30 136-72 43-43 66-88 74-136"
+    fill="none"
+    stroke="#0d1117"
+    stroke-width="12"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.5"
+  />
+</svg>
+
