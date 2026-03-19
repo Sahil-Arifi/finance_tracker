@@ -83,7 +83,15 @@ export default function LoginScreen() {
       <AnimatedBackdrop />
 
       <div className="login-card">
-        <h1 className="login-title">ExpensePilot</h1>
+        <h1 className="login-title">
+          <img
+            className="login-title-logo"
+            src="/icons/favicon-32.png"
+            alt=""
+            aria-hidden="true"
+          />
+          ExpensePilot
+        </h1>
         <p className="login-subtitle">Sign in to sync your data across devices</p>
 
         {error ? <p className="login-error">{error}</p> : null}
