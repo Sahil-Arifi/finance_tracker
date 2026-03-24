@@ -86,7 +86,7 @@ export default function LoginScreen() {
         <h1 className="login-title">
           <img
             className="login-title-logo"
-            src="/icons/favicon-32.png"
+            src="/icons/login-logo-512.png"
             alt=""
             aria-hidden="true"
           />

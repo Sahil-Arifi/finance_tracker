@@ -199,6 +199,7 @@
   flex-shrink: 0;
   border-radius: 12px;
   display: block;
+  object-fit: cover;
 }
 
 .login-subtitle {
