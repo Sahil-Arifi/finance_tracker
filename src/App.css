@@ -2679,7 +2679,7 @@ td.actions-col {
 /* Mobile & small tablets: spacing, tabs, calendar, tables, safe areas        */
 /* Animated canvas backdrop is disabled in JS at this breakpoint (plain #0d1117). */
 /* -------------------------------------------------------------------------- */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .app {
     padding: 16px max(14px, env(safe-area-inset-right)) 40px max(14px, env(safe-area-inset-left));
   }
