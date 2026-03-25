@@ -371,7 +371,15 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
         <header className="app-header">
           <div className="app-header-row">
             <div>
-              <h1 className="app-title">ExpensePilot</h1>
+              <h1 className="app-title">
+                <img
+                  className="app-title-logo"
+                  src="/icons/favicon-32.png"
+                  alt=""
+                  aria-hidden="true"
+                />
+                ExpensePilot
+              </h1>
               <p className="app-subtitle">Track your income and expenses</p>
             </div>
             {onSignOut ? (
