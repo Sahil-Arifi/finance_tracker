@@ -1,10 +1,33 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+
+const MOBILE_MAX_WIDTH = "(max-width: 768px)";
+
+function subscribeMobileLayout(callback) {
+  const mq = window.matchMedia(MOBILE_MAX_WIDTH);
+  mq.addEventListener("change", callback);
+  return () => mq.removeEventListener("change", callback);
+}
+
+function getMobileLayoutSnapshot() {
+  return window.matchMedia(MOBILE_MAX_WIDTH).matches;
+}
+
+function getMobileLayoutServerSnapshot() {
+  return false;
+}
 
 /**
  * Fluid topographic-style contours (marching squares) with gentle time drift.
  * `fixed`: full-viewport layer behind the app. Omit when parent provides bounds (e.g. login).
+ * On narrow viewports the canvas is omitted so the plain page background shows (better performance).
  */
 export default function AnimatedBackdrop({ fixed = false }) {
+  const hideOnMobile = useSyncExternalStore(
+    subscribeMobileLayout,
+    getMobileLayoutSnapshot,
+    getMobileLayoutServerSnapshot
+  );
+
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
@@ -12,6 +35,8 @@ export default function AnimatedBackdrop({ fixed = false }) {
   const reducedRef = useRef(false);
 
   useEffect(() => {
+    if (hideOnMobile) return undefined;
+
     const wrap = wrapRef.current;
     const canvas = canvasRef.current;
     if (!wrap || !canvas) return undefined;
@@ -216,7 +241,11 @@ export default function AnimatedBackdrop({ fixed = false }) {
       ro.disconnect();
       cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [hideOnMobile]);
+
+  if (hideOnMobile) {
+    return null;
+  }
 
   return (
     <div

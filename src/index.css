@@ -10,7 +10,18 @@ body {
   color: #e6edf3;
   line-height: 1.5;
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+}
+
+/* iOS: 16px+ on form controls avoids focus zoom */
+@media (max-width: 768px) {
+  .field-input,
+  .login-input,
+  .currency-input__field,
+  .modal-form .field-input {
+    font-size: 16px;
+  }
 }
 
 #root {

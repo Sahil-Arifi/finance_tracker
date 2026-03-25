@@ -124,6 +124,10 @@
   color: #8b949e;
 }
 
+.firebase-config-banner--prod .firebase-config-banner-title {
+  color: #79c0ff;
+}
+
 .firebase-config-code {
   font-size: 0.78em;
   padding: 2px 6px;
@@ -2650,4 +2654,205 @@ td.actions-col {
 
 .modal-btn--primary:hover {
   filter: brightness(1.06);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile & small tablets: spacing, tabs, calendar, tables, safe areas        */
+/* Animated canvas backdrop is disabled in JS at this breakpoint (plain #0d1117). */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .app {
+    padding: 16px max(14px, env(safe-area-inset-right)) 40px max(14px, env(safe-area-inset-left));
+  }
+
+  .app-shell {
+    min-height: 100dvh;
+  }
+
+  .app-header {
+    margin-bottom: 20px;
+  }
+
+  .app-title {
+    font-size: clamp(1.35rem, 6vw, 1.85rem);
+  }
+
+  .app-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .auth-email {
+    max-width: min(200px, 45vw);
+  }
+
+  .app-tabs {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    padding: 4px;
+    gap: 3px;
+  }
+
+  .app-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 0.8125rem;
+    text-align: center;
+  }
+
+  .firebase-config-banner {
+    padding: 12px max(14px, env(safe-area-inset-right)) 12px max(14px, env(safe-area-inset-left));
+    font-size: 0.78rem;
+  }
+
+  .year-toolbar {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .year-toolbar-label {
+    font-size: clamp(1.1rem, 5vw, 1.25rem);
+    min-width: 3.5rem;
+  }
+
+  .goals-hero {
+    padding: 18px 16px 16px;
+    margin-bottom: 20px;
+  }
+
+  .goals-hero::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .goals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-card {
+    padding: 16px 10px 18px;
+    margin-bottom: 16px;
+  }
+
+  .calendar-toolbar {
+    margin-bottom: 14px;
+    padding: 0 2px;
+    gap: 8px;
+  }
+
+  .calendar-title {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  .calendar-weekdays {
+    gap: 4px;
+    padding: 0 2px;
+  }
+
+  .calendar-grid {
+    gap: 4px;
+  }
+
+  .calendar-day {
+    min-height: 56px;
+    padding: 6px 2px 4px;
+    border-radius: 10px;
+  }
+
+  .calendar-day-num {
+    font-size: 0.8rem;
+  }
+
+  .day-scope-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .day-scope-clear {
+    width: 100%;
+    text-align: center;
+  }
+
+  .charts-dashboard {
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .add-transaction,
+  .transactions {
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+
+  .transactions-table-wrap {
+    margin: 0 -6px;
+    padding: 0 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  th,
+  td {
+    padding: 8px 8px;
+    font-size: 0.78rem;
+  }
+
+  th {
+    font-size: 0.6rem;
+  }
+
+  .txn-desc-cell,
+  .txn-splits-cell {
+    max-width: 120px;
+    word-break: break-word;
+  }
+
+  .accounts-panel {
+    padding: 16px 14px 18px;
+    margin-bottom: 20px;
+  }
+
+  .accounts-balance-wrap {
+    width: 100%;
+    max-width: 160px;
+  }
+
+  .modal-backdrop {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    align-items: flex-end;
+  }
+
+  .modal-dialog {
+    max-height: min(92dvh, 720px);
+    border-radius: 16px 16px 0 0;
+  }
+
+  @media (min-height: 540px) {
+    .modal-backdrop {
+      align-items: center;
+    }
+
+    .modal-dialog {
+      border-radius: 18px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .login-screen {
+    padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+  }
+
+  .login-card {
+    padding: 24px 18px;
+  }
 }

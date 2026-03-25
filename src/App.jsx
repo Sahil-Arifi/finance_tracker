@@ -42,9 +42,17 @@ function FirebaseConfigBanner() {
           </span>
         </>
       ) : (
-        <span className="firebase-config-banner-body">
-          This build has no Firebase configuration, so the app runs in offline mode on this device only (no sign-in).
-        </span>
+        <>
+          <strong className="firebase-config-banner-title">Firebase wasn’t configured at build time.</strong>
+          <span className="firebase-config-banner-body">
+            {" "}
+            In Netlify: <strong>Site configuration → Environment variables</strong>, add the same keys as in{" "}
+            <code className="firebase-config-code">.env.example</code> (all must start with{" "}
+            <code className="firebase-config-code">VITE_FIREBASE_</code>), then trigger a new deploy. In Firebase
+            Console → Authentication → Settings → Authorized domains, add your Netlify domain (e.g.{" "}
+            <code className="firebase-config-code">yoursite.netlify.app</code>).
+          </span>
+        </>
       )}
     </div>
   );
