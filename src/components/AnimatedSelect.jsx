@@ -86,6 +86,14 @@ export default function AnimatedSelect({
   }, [open]);
 
   const onMenuWheel = useCallback((e) => {
+    const el = e.currentTarget;
+    const atTop = el.scrollTop <= 0;
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+    const scrollingUp = e.deltaY < 0;
+    const scrollingDown = e.deltaY > 0;
+
+    // Let page/container scroll when the menu cannot scroll further.
+    if ((atTop && scrollingUp) || (atBottom && scrollingDown)) return;
     e.stopPropagation();
   }, []);
 

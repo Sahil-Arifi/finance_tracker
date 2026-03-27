@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:functions": "firebase deploy --only functions",
     "cap:sync": "npx cap sync",
     "cap:build": "npm run build && npx cap sync",
     "electron:dev": "npm run build && electron .",
@@ -19,9 +20,11 @@
     "@capacitor/android": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@capacitor/ios": "^8.2.0",
+    "@google/stitch-sdk": "^0.0.3",
     "firebase": "^12.11.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-plaid-link": "^4.1.1"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.2.0",

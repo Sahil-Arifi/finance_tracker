@@ -1,5 +1,6 @@
-import { useId } from "react";
+import { useCallback, useId, useState } from "react";
 import { CHART_CATEGORIES, totalsForChartCategories } from "../constants/chartCategories";
+import ChartHoverTooltip from "./ChartHoverTooltip";
 
 function formatMoney(n) {
   return new Intl.NumberFormat("en-US", {
@@ -30,6 +31,7 @@ function donutSlicePath(cx, cy, r0, r1, a0, a1) {
 
 export default function SpendingPieChart({ transactions, title = "Spending split" }) {
   const glowId = `pieGlow-${useId().replace(/:/g, "")}`;
+  const [hoverTip, setHoverTip] = useState(null);
   const totals = totalsForChartCategories(transactions);
   const slices = CHART_CATEGORIES.map((c) => ({
     ...c,
@@ -43,26 +45,38 @@ export default function SpendingPieChart({ transactions, title = "Spending split
   const r0 = 48;
 
   let angle = -Math.PI / 2;
-  const paths = total > 0
-    ? slices.map((s) => {
-        const sweep = (s.value / total) * Math.PI * 2;
-        const a0 = angle;
-        const a1 = angle + sweep;
-        const d = donutSlicePath(cx, cy, r0, r1, a0, a1);
-        angle = a1;
-        return { ...s, d, pct: (s.value / total) * 100 };
-      })
-    : [];
+  const paths =
+    total > 0
+      ? slices.map((s) => {
+          const sweep = (s.value / total) * Math.PI * 2;
+          const a0 = angle;
+          const a1 = angle + sweep;
+          const d = donutSlicePath(cx, cy, r0, r1, a0, a1);
+          angle = a1;
+          return { ...s, d, pct: (s.value / total) * 100 };
+        })
+      : [];
+
+  const moveTip = useCallback((e) => {
+    setHoverTip((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
+  }, []);
 
   return (
     <section className="pie-card" aria-label={title}>
       <h2 className="pie-card-title">{title}</h2>
+      <ChartHoverTooltip tip={hoverTip} />
       {total <= 0 ? (
         <p className="pie-card-empty">No categorized expenses in this period.</p>
       ) : (
         <div className="pie-card-body">
           <div className="pie-svg-wrap">
-            <svg className="pie-svg" viewBox="0 0 200 200" aria-hidden>
+            <svg
+              className="pie-svg"
+              viewBox="0 0 200 200"
+              aria-hidden
+              onPointerMove={moveTip}
+              onPointerLeave={() => setHoverTip(null)}
+            >
               <defs>
                 <filter id={glowId} x="-40%" y="-40%" width="180%" height="180%">
                   <feGaussianBlur stdDeviation="2" result="b" />
@@ -80,6 +94,13 @@ export default function SpendingPieChart({ transactions, title = "Spending split
                     d={p.d}
                     fill={p.color}
                     style={{ "--si": si }}
+                    onPointerEnter={(e) =>
+                      setHoverTip({
+                        text: `${p.label} · ${formatMoney(p.value)} (${p.pct.toFixed(0)}%)`,
+                        x: e.clientX,
+                        y: e.clientY,
+                      })
+                    }
                   />
                 ))}
               </g>

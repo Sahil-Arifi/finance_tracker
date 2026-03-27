@@ -1,3 +1,6 @@
+import { useCallback, useState } from "react";
+import ChartHoverTooltip from "./ChartHoverTooltip";
+
 function formatMoney(n) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -36,6 +39,7 @@ function yearFlow(transactions) {
 }
 
 export default function CashFlowPieChart({ transactions }) {
+  const [hoverTip, setHoverTip] = useState(null);
   const { income, expense } = yearFlow(transactions);
   const total = income + expense;
   const cx = 100;
@@ -50,14 +54,14 @@ export default function CashFlowPieChart({ transactions }) {
             key: "income",
             label: "Income",
             value: income,
-            color: "#2ea043",
+            color: "#4af8e3",
             pct: (income / total) * 100,
           },
           {
             key: "expense",
             label: "Expenses",
             value: expense,
-            color: "#f85149",
+            color: "#ff9dac",
             pct: (expense / total) * 100,
           },
         ].filter((s) => s.value > 0)
@@ -73,18 +77,42 @@ export default function CashFlowPieChart({ transactions }) {
     return { ...s, d };
   });
 
+  const moveTip = useCallback((e) => {
+    setHoverTip((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
+  }, []);
+
   return (
     <section className="pie-card pie-card--compact" aria-label="Income and expenses">
       <h2 className="pie-card-title">Cash flow</h2>
+      <ChartHoverTooltip tip={hoverTip} />
       {total <= 0 ? (
         <p className="pie-card-empty">Add transactions to see your income vs spending mix.</p>
       ) : (
         <div className="pie-card-body pie-card-body--compact">
           <div className="pie-svg-wrap pie-svg-wrap--sm">
-            <svg className="pie-svg" viewBox="0 0 200 200" aria-hidden>
+            <svg
+              className="pie-svg"
+              viewBox="0 0 200 200"
+              aria-hidden
+              onPointerMove={moveTip}
+              onPointerLeave={() => setHoverTip(null)}
+            >
               <g className="pie-slices">
                 {paths.map((p, si) => (
-                  <path key={p.key} className="pie-slice" d={p.d} fill={p.color} style={{ "--si": si }} />
+                  <path
+                    key={p.key}
+                    className="pie-slice"
+                    d={p.d}
+                    fill={p.color}
+                    style={{ "--si": si }}
+                    onPointerEnter={(e) =>
+                      setHoverTip({
+                        text: `${p.label} · ${formatMoney(p.value)} (${p.pct.toFixed(0)}%)`,
+                        x: e.clientX,
+                        y: e.clientY,
+                      })
+                    }
+                  />
                 ))}
               </g>
               <circle className="pie-hole" cx={cx} cy={cy} r={r0 - 0.5} />

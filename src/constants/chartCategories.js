@@ -1,9 +1,9 @@
 export const CHART_CATEGORIES = [
-  { key: "housing", label: "Housing", color: "#e85d75" },
-  { key: "food", label: "Food", color: "#a371f7" },
-  { key: "utilities", label: "Utilities", color: "#2ea043" },
-  { key: "transport", label: "Transport", color: "#d29922" },
-  { key: "entertainment", label: "Entertainment", color: "#8957e5" },
+  { key: "housing", label: "Housing", color: "#ff9dac" },
+  { key: "food", label: "Food", color: "#c799ff" },
+  { key: "utilities", label: "Utilities", color: "#4af8e3" },
+  { key: "transport", label: "Transport", color: "#f4b95f" },
+  { key: "entertainment", label: "Entertainment", color: "#8f74ff" },
 ];
 
 export function totalsForChartCategories(transactions) {
