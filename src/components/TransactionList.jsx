@@ -245,6 +245,8 @@ export default function TransactionList({
         incomeCategories={incomeCategories}
         savingsGoals={savingsGoals}
         onSave={onUpdateTransaction}
+        onDelete={onDelete}
+        showDeleteInFooter={isMobile}
       />
       {!hideListHeading && !isMobile ? <h2>Transactions</h2> : null}
       {!isMobile && listSubtitle ? <p className="transactions-subtitle">{listSubtitle}</p> : null}
@@ -373,6 +375,19 @@ export default function TransactionList({
                             key={t.id}
                             data-txn-id={String(t.id)}
                             className={`vault-txn-row ${t.type === "income" ? "is-income" : "is-expense"}`}
+                            role={isMobile ? "button" : undefined}
+                            tabIndex={isMobile ? 0 : undefined}
+                            onClick={isMobile ? () => setEditing(t) : undefined}
+                            onKeyDown={
+                              isMobile
+                                ? (e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      setEditing(t);
+                                    }
+                                  }
+                                : undefined
+                            }
                           >
                             <div className="vault-txn-main">
                               <div className="vault-txn-title-row">
@@ -386,14 +401,15 @@ export default function TransactionList({
                                   <p>{t.category}</p>
                                 </div>
                               </div>
-                              <small>{t.paymentMethod || "No method"}</small>
+                              {t.paymentMethod ? <small>{t.paymentMethod}</small> : null}
                               {t.receiptImage ? (
                                 <button
                                   type="button"
                                   className="txn-receipt-thumb-btn"
-                                  onClick={() =>
-                                    setFocusedReceipt({ src: t.receiptImage, name: t.receiptName || `receipt-${t.id}.png` })
-                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFocusedReceipt({ src: t.receiptImage, name: t.receiptName || `receipt-${t.id}.png` });
+                                  }}
                                   aria-label="Open receipt image"
                                 >
                                   <img src={t.receiptImage} alt="Receipt thumbnail" className="txn-receipt-thumb" />
@@ -407,27 +423,29 @@ export default function TransactionList({
                               </span>
                               {splitsText ? <small>{splitsText}</small> : null}
                             </div>
-                            <div className="txn-actions">
-                              <button
-                                type="button"
-                                className="edit-btn"
-                                onClick={() => setEditing(t)}
-                                aria-label={`Edit ${t.description || "transaction"}`}
-                              >
-                                <PencilIcon />
-                                <span className="edit-btn-text">Edit</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="delete-btn"
-                                onClick={() => {
-                                  const label = t.description?.trim() || t.category;
-                                  setDeleteConfirm({ id: t.id, label, date: t.date });
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </div>
+                            {!isMobile ? (
+                              <div className="txn-actions">
+                                <button
+                                  type="button"
+                                  className="edit-btn"
+                                  onClick={() => setEditing(t)}
+                                  aria-label={`Edit ${t.description || "transaction"}`}
+                                >
+                                  <PencilIcon />
+                                  <span className="edit-btn-text">Edit</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="delete-btn"
+                                  onClick={() => {
+                                    const label = t.description?.trim() || t.category;
+                                    setDeleteConfirm({ id: t.id, label, date: t.date });
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            ) : null}
                           </article>
                         );
                       })}

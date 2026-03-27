@@ -1562,6 +1562,7 @@ input[type="date"] {
   justify-content: space-around;
   gap: 8px;
   padding: 0 4px;
+  overflow: visible;
 }
 
 .chart-bar-col {
@@ -1593,14 +1594,27 @@ input[type="date"] {
   font-weight: 500;
   color: #8b949e;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.15;
+  max-width: 52px;
+  width: max-content;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 @media (max-width: 560px) {
+  .chart-plot-inner {
+    margin-bottom: 56px;
+  }
+
+  .chart-bars {
+    gap: 5px;
+    padding: 0 1px;
+  }
+
   .chart-bar-label {
-    font-size: 0.62rem;
-    white-space: normal;
-    max-width: 56px;
+    font-size: 0.58rem;
+    max-width: 40px;
     line-height: 1.2;
   }
 }
@@ -1958,6 +1972,42 @@ td.actions-col {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.charts-dashboard-pies .pie-card {
+  min-height: 220px;
+}
+
+.charts-dashboard-pies .pie-card-body,
+.charts-dashboard-pies .pie-card-body--compact {
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.charts-dashboard-pies .pie-svg-wrap,
+.charts-dashboard-pies .pie-svg-wrap--sm {
+  width: 100%;
+  max-width: 118px;
+}
+
+.charts-dashboard-pies .pie-legend {
+  min-width: 0;
+  gap: 8px;
+}
+
+.charts-dashboard-pies .pie-legend-row {
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  gap: 6px 10px;
+  font-size: 0.74rem;
+  align-items: baseline;
+}
+
+.charts-dashboard-pies .pie-legend-name,
+.charts-dashboard-pies .pie-legend-amt {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Pie charts */
@@ -3442,6 +3492,9 @@ td.actions-col {
 
 .vault-edit-txn-actions {
   border-top-color: rgba(72, 72, 71, 0.85);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .vault-edit-txn-btn--ghost {
@@ -3463,6 +3516,30 @@ td.actions-col {
 .vault-edit-txn-btn--primary:hover {
   filter: brightness(1.07);
   box-shadow: 0 6px 28px color-mix(in srgb, var(--vault-primary) 42%, transparent);
+}
+
+.vault-edit-txn-delete-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 142, 163, 0.38);
+  background: rgba(255, 142, 163, 0.14);
+  color: #ff9dac;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  transition: filter 0.16s ease, transform 0.16s ease, border-color 0.2s ease;
+}
+
+.vault-edit-txn-delete-icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.vault-edit-txn-delete-icon-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  border-color: rgba(255, 142, 163, 0.56);
 }
 
 /* Edit modal: portaled form — match vault surfaces; dropdowns use high z-index */
@@ -4728,21 +4805,41 @@ td.actions-col {
   border-radius: 14px;
   border: 1px solid rgba(72, 72, 71, 0.5);
   background: linear-gradient(180deg, rgba(28, 28, 34, 0.78), rgba(16, 16, 20, 0.86));
-  padding: 14px 12px;
+  padding: 12px 10px;
+  min-height: 172px;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
 }
 
 .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-svg-wrap {
-  width: min(230px, 46vw);
+  width: 100%;
+  max-width: 118px;
+  margin: 0;
+  justify-self: start;
+}
+
+.vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-svg-wrap--sm {
+  width: 100%;
+  max-width: 118px;
+  margin: 0;
+  justify-self: start;
 }
 
 .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend {
-  min-width: 132px;
+  min-width: 0;
+  width: 100%;
 }
 
 .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-name,
 .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-pct,
 .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-amt {
   font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.vault-content--mobile .pie-legend-pct {
+  display: none;
 }
 
 .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-amt {
@@ -4750,27 +4847,98 @@ td.actions-col {
 }
 
 .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-row {
-  grid-template-columns: 10px minmax(0, 1fr) auto minmax(4.5rem, auto);
-  gap: 8px 10px;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 6px 10px;
   align-items: baseline;
+}
+
+.vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-name {
+  justify-self: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-pct,
+.vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-amt {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-pct {
+  display: none !important;
+}
+
+.vault-content--mobile .charts-dashboard--accounts .pie-card-body,
+.vault-content--mobile .charts-dashboard--accounts .pie-card-body--compact {
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.vault-content--mobile .charts-dashboard--accounts .pie-svg-wrap {
+  width: 100%;
+  max-width: 118px;
+  margin: 0;
+  justify-self: start;
+}
+
+.vault-content--mobile .charts-dashboard--accounts .pie-legend {
+  min-width: 0;
+  width: 100%;
+}
+
+.vault-content--mobile .charts-dashboard--accounts .pie-legend-row {
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  align-items: baseline;
+}
+
+.vault-content--mobile .charts-dashboard--accounts .pie-legend-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-content--mobile .charts-dashboard--accounts .pie-legend-amt {
+  justify-self: end;
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {
   .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-card-body,
   .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-card-body--compact {
-    grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
+    grid-template-columns: 118px minmax(0, 1fr);
     justify-items: stretch;
     text-align: left;
     align-items: center;
+    gap: 10px;
+    padding: 11px 8px;
   }
 
   .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-card-body:not(.pie-card-body--compact) {
-    grid-template-columns: minmax(0, 160px) minmax(0, 1fr);
+    grid-template-columns: 118px minmax(0, 1fr);
   }
 
   .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-svg-wrap {
     margin: 0;
     justify-self: start;
+    width: 100%;
+    max-width: 118px;
+  }
+
+  .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-svg-wrap--sm {
+    width: 100%;
+    max-width: 118px;
+  }
+
+  .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-row {
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    gap: 6px 10px;
+  }
+
+  .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-name,
+  .vault-screen--mobile-dashboard .mobile-dash-card--chart .pie-legend-amt {
+    font-size: 0.77rem;
   }
 }
 
@@ -4829,6 +4997,7 @@ td.actions-col {
   background: transparent;
   box-shadow: none;
   border-radius: 0;
+  margin-top: 0;
 }
 
 .vault-accounts--mobile .vault-accounts-head {
@@ -4837,6 +5006,11 @@ td.actions-col {
   padding-bottom: 4px;
   margin-bottom: 8px;
   gap: 10px;
+}
+
+.vault-content--mobile .vault-screen--assets .vault-screen-head {
+  padding: 0 16px;
+  margin: 0 0 2px;
 }
 
 .vault-content--mobile .vault-planning-tabs {
@@ -4914,6 +5088,34 @@ td.actions-col {
   margin-bottom: 8px;
   border-color: rgba(72, 72, 71, 0.44);
   background: rgba(15, 15, 18, 0.96);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 9px 10px;
+}
+
+.vault-content--mobile .vault-day-table > .vault-txn-row .vault-txn-main .category-txn-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.vault-content--mobile .vault-day-table > .vault-txn-row .vault-txn-title-text strong {
+  font-size: 0.9rem;
+}
+
+.vault-content--mobile .vault-day-table > .vault-txn-row .vault-txn-title-text p,
+.vault-content--mobile .vault-day-table > .vault-txn-row .vault-txn-main small,
+.vault-content--mobile .vault-day-table > .vault-txn-row .vault-txn-meta small {
+  font-size: 0.73rem;
+}
+
+.vault-content--mobile .vault-day-table > .vault-txn-row .vault-txn-meta {
+  min-width: 92px;
+  gap: 2px;
+}
+
+.vault-content--mobile .vault-day-table > .vault-txn-row .txn-actions {
+  display: none;
 }
 
 .vault-content--mobile .vault-txn-title-text strong {
