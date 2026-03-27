@@ -1,0 +1,17 @@
+{
+  "name": "functions",
+  "description": "Cloud Functions for ExpensePilot (OCR, Plaid)",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@google-cloud/vision": "^4.3.2",
+    "dotenv": "^16.4.7",
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.3.0",
+    "openai": "^6.33.0",
+    "plaid": "^28.0.0"
+  }
+}

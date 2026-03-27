@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import AnimatedSelect from "./AnimatedSelect";
 import CurrencyInput from "./CurrencyInput";
@@ -19,7 +19,7 @@ function pickCategoryForType(txnType, cat, expenseCategories, incomeCategories) 
   return list[0] ?? "other";
 }
 
-function TransactionEditModalInner({ transaction, onClose, expenseCategories, incomeCategories, savingsGoals, onSave }) {
+function TransactionEditModalInner({ transaction, exiting = false, onClose, expenseCategories, incomeCategories, savingsGoals, onSave }) {
   const [description, setDescription] = useState(transaction.description ?? "");
   const [amount, setAmount] = useState(String(transaction.amount ?? ""));
   const [type, setType] = useState(transaction.type || "expense");
@@ -116,21 +116,25 @@ function TransactionEditModalInner({ transaction, onClose, expenseCategories, in
   };
 
   const modal = (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+    <div
+      className={`modal-backdrop vault-edit-modal-backdrop${exiting ? " is-exiting" : ""}`}
+      role="presentation"
+      onMouseDown={onClose}
+    >
       <div
-        className="modal-dialog"
+        className={`modal-dialog vault-edit-txn-dialog${exiting ? " is-exiting" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-txn-title"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="modal-head">
+        <div className="modal-head vault-edit-txn-head">
           <h2 id="edit-txn-title">Edit transaction</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="modal-close vault-edit-txn-close" onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
-        <form className="transaction-form modal-form" onSubmit={handleSubmit}>
+        <form className="transaction-form modal-form vault-edit-txn-form" onSubmit={handleSubmit}>
           <div className="txn-field-wrap">
             <label className="txn-field-label" htmlFor="edit-desc">
               Description <span className="txn-optional">(optional)</span>
@@ -212,11 +216,11 @@ function TransactionEditModalInner({ transaction, onClose, expenseCategories, in
             </div>
           )}
 
-          <div className="modal-actions">
-            <button type="button" className="modal-btn modal-btn--ghost" onClick={onClose}>
+          <div className="modal-actions vault-edit-txn-actions">
+            <button type="button" className="modal-btn modal-btn--ghost vault-edit-txn-btn vault-edit-txn-btn--ghost" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="modal-btn modal-btn--primary">
+            <button type="submit" className="modal-btn modal-btn--primary vault-edit-txn-btn vault-edit-txn-btn--primary">
               Save changes
             </button>
           </div>
@@ -229,11 +233,44 @@ function TransactionEditModalInner({ transaction, onClose, expenseCategories, in
 }
 
 export default function TransactionEditModal({ transaction, open, onClose, expenseCategories, incomeCategories, savingsGoals, onSave }) {
-  if (!open || !transaction) return null;
+  const [mounted, setMounted] = useState(() => Boolean(open && transaction));
+  const [exiting, setExiting] = useState(false);
+  const lastTxnRef = useRef(transaction || null);
+
+  useEffect(() => {
+    if (transaction) lastTxnRef.current = transaction;
+  }, [transaction]);
+
+  useEffect(() => {
+    if (open && (transaction || lastTxnRef.current)) {
+      setMounted(true);
+      setExiting(false);
+      return undefined;
+    }
+    if (!open && mounted && !exiting) {
+      const id = requestAnimationFrame(() => setExiting(true));
+      return () => cancelAnimationFrame(id);
+    }
+    return undefined;
+  }, [open, transaction, mounted, exiting]);
+
+  useEffect(() => {
+    if (!exiting) return undefined;
+    const t = window.setTimeout(() => {
+      setMounted(false);
+      setExiting(false);
+    }, 220);
+    return () => window.clearTimeout(t);
+  }, [exiting]);
+
+  if (!mounted) return null;
+  const txn = transaction || lastTxnRef.current;
+  if (!txn) return null;
   return (
     <TransactionEditModalInner
-      key={transaction.id}
-      transaction={transaction}
+      key={txn.id}
+      transaction={txn}
+      exiting={exiting}
       onClose={onClose}
       expenseCategories={expenseCategories}
       incomeCategories={incomeCategories}

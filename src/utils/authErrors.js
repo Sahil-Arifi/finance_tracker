@@ -21,6 +21,8 @@ export function friendlyAuthError(err, fallback = "Something went wrong. Try aga
     "auth/cancelled-popup-request": "Only one sign-in window at a time. Try Google sign-in again.",
     "auth/popup-blocked": "Your browser blocked the sign-in window. Allow pop-ups for this site.",
     "auth/operation-not-allowed": "This sign-in method isn’t enabled in the project. Ask the app owner.",
+    "auth/unauthorized-domain": "This site’s address isn’t allowed for sign-in. In Firebase Console → Authentication → Settings, add this domain under Authorized domains (e.g. your dev URL or 127.0.0.1).",
+    "auth/web-storage-unsupported": "This browser blocked storage needed for sign-in. Try another browser or turn off private/incognito mode.",
     "auth/invalid-api-key": "App configuration error. Check Firebase setup.",
     "auth/app-deleted": "This app is no longer available.",
     "auth/requires-recent-login": "For security, sign out and sign in again, then retry.",

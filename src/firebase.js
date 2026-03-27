@@ -1,6 +1,8 @@
 import { initializeApp } from "firebase/app";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
 
 function envStr(key) {
   const v = import.meta.env[key];
@@ -19,6 +21,7 @@ export const isFirebaseConfigured = Boolean(apiKey && authDomain && projectId &&
 let app;
 let auth;
 let db;
+let functions;
 
 if (isFirebaseConfigured) {
   app = initializeApp({
@@ -29,8 +32,30 @@ if (isFirebaseConfigured) {
     messagingSenderId: messagingSenderId || undefined,
     appId,
   });
+
+  // Required if Firebase Console → App Check has enforcement ON for Auth / Firestore / Functions.
+  // Without this block (or with enforcement off), clients fail with permission / 401-style errors.
+  const recaptchaSiteKey = envStr("VITE_RECAPTCHA_SITE_KEY");
+  if (typeof window !== "undefined" && recaptchaSiteKey) {
+    const debugUuid = envStr("VITE_APPCHECK_DEBUG_TOKEN");
+    const debugBootstrap = envStr("VITE_APPCHECK_DEBUG");
+    if (import.meta.env.DEV) {
+      if (debugUuid) {
+        window.FIREBASE_APPCHECK_DEBUG_TOKEN = debugUuid;
+      } else if (debugBootstrap === "1" || debugBootstrap === "true") {
+        window.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      }
+    }
+    initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+  }
+
   auth = getAuth(app);
   db = getFirestore(app);
+  const region = envStr("VITE_FUNCTIONS_REGION") || "us-central1";
+  functions = getFunctions(app, region);
 }
 
-export { auth, db };
+export { auth, db, functions };
