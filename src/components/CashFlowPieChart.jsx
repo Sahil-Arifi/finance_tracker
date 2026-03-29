@@ -44,8 +44,8 @@ export default function CashFlowPieChart({ transactions }) {
   const total = income + expense;
   const cx = 100;
   const cy = 100;
-  const r1 = 72;
-  const r0 = 46;
+  const r1 = 78;
+  const r0 = 48;
 
   const slices =
     total > 0

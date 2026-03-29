@@ -1852,7 +1852,7 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
             )}
 
             {activeTab === "assets" && (
-              <section className="vault-screen">
+              <section className="vault-screen vault-screen--assets">
                 <div className="vault-screen-head">
                   <h2>Assets</h2>
                   <p>Linked institutions, account balances, card utilization and net worth details.</p>

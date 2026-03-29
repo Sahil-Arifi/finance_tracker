@@ -19,7 +19,25 @@ function pickCategoryForType(txnType, cat, expenseCategories, incomeCategories) 
   return list[0] ?? "other";
 }
 
-function TransactionEditModalInner({ transaction, exiting = false, onClose, expenseCategories, incomeCategories, savingsGoals, onSave }) {
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M3 6h18M8 6V4h8v2M7 6l1 14h8l1-14M10 10v7M14 10v7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TransactionEditModalInner({
+  transaction,
+  exiting = false,
+  onClose,
+  expenseCategories,
+  incomeCategories,
+  savingsGoals,
+  onSave,
+  onDelete,
+  showDeleteInFooter = false,
+}) {
   const [description, setDescription] = useState(transaction.description ?? "");
   const [amount, setAmount] = useState(String(transaction.amount ?? ""));
   const [type, setType] = useState(transaction.type || "expense");
@@ -220,6 +238,19 @@ function TransactionEditModalInner({ transaction, exiting = false, onClose, expe
             <button type="button" className="modal-btn modal-btn--ghost vault-edit-txn-btn vault-edit-txn-btn--ghost" onClick={onClose}>
               Cancel
             </button>
+            {showDeleteInFooter ? (
+              <button
+                type="button"
+                className="vault-edit-txn-delete-icon-btn"
+                aria-label="Delete transaction"
+                onClick={() => {
+                  onDelete?.(transaction.id);
+                  onClose();
+                }}
+              >
+                <TrashIcon />
+              </button>
+            ) : null}
             <button type="submit" className="modal-btn modal-btn--primary vault-edit-txn-btn vault-edit-txn-btn--primary">
               Save changes
             </button>
@@ -232,7 +263,17 @@ function TransactionEditModalInner({ transaction, exiting = false, onClose, expe
   return createPortal(modal, document.body);
 }
 
-export default function TransactionEditModal({ transaction, open, onClose, expenseCategories, incomeCategories, savingsGoals, onSave }) {
+export default function TransactionEditModal({
+  transaction,
+  open,
+  onClose,
+  expenseCategories,
+  incomeCategories,
+  savingsGoals,
+  onSave,
+  onDelete,
+  showDeleteInFooter = false,
+}) {
   const [mounted, setMounted] = useState(() => Boolean(open && transaction));
   const [exiting, setExiting] = useState(false);
   const lastTxnRef = useRef(transaction || null);
@@ -276,6 +317,8 @@ export default function TransactionEditModal({ transaction, open, onClose, expen
       incomeCategories={incomeCategories}
       savingsGoals={savingsGoals}
       onSave={onSave}
+      onDelete={onDelete}
+      showDeleteInFooter={showDeleteInFooter}
     />
   );
 }
