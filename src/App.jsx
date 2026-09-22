@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, runTransaction } from "firebase/firestore";
 import Summary from "./components/Summary";
 import AccountsPanel from "./components/AccountsPanel";
 import TransactionForm from "./components/TransactionForm";
@@ -16,6 +16,7 @@ import { db, isFirebaseConfigured } from "./firebase";
 import { loadState, saveState } from "./persistence";
 import { sumAllocationsToGoal } from "./utils/goalAllocations";
 import { mergePlaidTransactions } from "./utils/mergePlaidTransactions";
+import { commitFinanceChanges, financeStatesEqual, initializeFinanceState, mergeFinanceChanges, normalizeFinanceState } from "./utils/financePersistence";
 import * as cloudFns from "./services/cloudFunctions";
 import PlanningSubscriptionsPanel from "./components/PlanningSubscriptionsPanel";
 import { computeDashboardInsightHeadlines } from "./utils/localInsights";
@@ -1357,6 +1358,9 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
   const hydratedRef = useRef(!cloud);
   const [cloudReady, setCloudReady] = useState(!cloud);
   const cloudRefreshSuppressUntilRef = useRef(0);
+  const cloudBaselineRef = useRef(null);
+  const cloudSaveQueueRef = useRef(Promise.resolve());
+  const cloudWritesPendingRef = useRef(0);
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobile, setIsMobile] = useState(() => {
@@ -1412,42 +1416,23 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
     let cancelled = false;
     const hydrateOnce = async () => {
       try {
-        if (Date.now() < cloudRefreshSuppressUntilRef.current) return;
+        if (Date.now() < cloudRefreshSuppressUntilRef.current || cloudWritesPendingRef.current > 0) return;
+        const baseline = cloudBaselineRef.current;
         const snap = await getDoc(ref);
-        if (cancelled) return;
-        skipSaveRef.current = true;
+        if (cancelled || cloudWritesPendingRef.current > 0) return;
+        let remote;
         if (!snap.exists()) {
           const local = loadState();
-          const has = local.transactions.length > 0 || local.goals.length > 0 || local.accounts.length > 0;
-          const normalizedAccounts = reconcileAccountsWithPlaid(local.accounts, local.linkedPlaidItems || []);
-          if (has) {
-            await setDoc(ref, {
-              transactions: local.transactions,
-              goals: local.goals,
-              accounts: normalizedAccounts,
-              linkedPlaidItems: local.linkedPlaidItems || [],
-            });
-            if (!cancelled) setFinance({ ...local, accounts: normalizedAccounts });
-          } else {
-            setFinance({ transactions: [], goals: [], accounts: [], linkedPlaidItems: [] });
-          }
-        } else {
-          const d = snap.data();
-          const linked = Array.isArray(d.linkedPlaidItems) ? d.linkedPlaidItems : [];
-          setFinance((current) => {
-            const remoteTransactions = Array.isArray(d.transactions) ? d.transactions : [];
-            const remoteIds = new Set(remoteTransactions.map((t) => String(t?.id)));
-            const localUnsynced = (current?.transactions || []).filter(
-              (t) => t && t.pendingLocalWrite && !remoteIds.has(String(t.id))
-            );
-            return {
-              transactions: [...remoteTransactions, ...localUnsynced],
-              goals: Array.isArray(d.goals) ? d.goals : [],
-              accounts: reconcileAccountsWithPlaid(Array.isArray(d.accounts) ? d.accounts : [], linked),
-              linkedPlaidItems: linked,
-            };
+          remote = await initializeFinanceState({
+            runTransaction, db, ref,
+            local: { ...local, accounts: reconcileAccountsWithPlaid(local.accounts, local.linkedPlaidItems || []) },
           });
+          if (cancelled) return;
+        } else {
+          remote = normalizeFinanceState(snap.data());
         }
+        cloudBaselineRef.current = remote;
+        setFinance((current) => baseline ? mergeFinanceChanges(remote, baseline, current) : remote);
         hydratedRef.current = true;
         setCloudReady(true);
       } catch (e) {
@@ -1488,44 +1473,33 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
   }, [cloud, transactions, goals, accounts, linkedPlaidItems]);
 
   useEffect(() => {
-    if (!cloud || !cloudUserId) return undefined;
-    if (!hydratedRef.current) return undefined;
-    if (skipSaveRef.current) {
-      skipSaveRef.current = false;
-      return undefined;
-    }
+    if (!cloud || !cloudUserId || !hydratedRef.current || !cloudBaselineRef.current) return undefined;
     const ref = financeDocRef(cloudUserId);
+    const baseline = cloudBaselineRef.current;
+    const submitted = { transactions, goals, accounts, linkedPlaidItems };
+    if (financeStatesEqual(baseline, submitted)) return undefined;
     const id = setTimeout(() => {
-      setDoc(
-        ref,
-        {
-          transactions,
-          goals,
-          accounts,
-          linkedPlaidItems,
-        },
-        { merge: true }
-      )
-        .then(() => {
-          if (!transactions.some((t) => t?.pendingLocalWrite)) return;
-          setTransactions((prev) =>
-            prev.map((t) => (t?.pendingLocalWrite ? { ...t, pendingLocalWrite: undefined } : t))
-          );
-        })
-        .catch((err) => {
-          const msg = err?.message || "";
-          const tooBig = /long|size|exceed|invalid/i.test(msg);
-          banners.push({
-            tone: "error",
-            message: tooBig
-              ? "Cloud save failed — receipt images must be smaller."
-              : "Could not save to cloud. Check your connection and try again.",
-            durationMs: 6000,
-          });
+      cloudWritesPendingRef.current += 1;
+      // Serialize this tab's writes while preserving each edit's original baseline.
+      const save = cloudSaveQueueRef.current.then(async () => {
+        const committed = await commitFinanceChanges({ runTransaction, db, ref, baseline, local: submitted });
+        cloudBaselineRef.current = committed;
+        setFinance((current) => mergeFinanceChanges(committed, submitted, current));
+      });
+      cloudSaveQueueRef.current = save.catch((err) => {
+        const msg = err?.message || "";
+        const tooBig = /long|size|exceed|invalid/i.test(msg);
+        banners.push({
+          tone: "error",
+          message: tooBig
+            ? "Cloud save failed — receipt images must be smaller."
+            : "Could not save to cloud. Check your connection and try again.",
+          durationMs: 6000,
         });
+      }).finally(() => { cloudWritesPendingRef.current -= 1; });
     }, 280);
     return () => clearTimeout(id);
-  }, [cloud, cloudUserId, transactions, goals, accounts, linkedPlaidItems]);
+  }, [cloud, cloudUserId, transactions, goals, accounts, linkedPlaidItems, banners]);
 
   const setTransactions = useCallback((updater) => {
     setFinance((d) => ({
@@ -1680,11 +1654,13 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
       const incoming = data?.transactions || [];
       const plaidUpdates = data?.plaidUpdates || [];
       const meta = data?.linkedPlaidItems || [];
+      const removedTransactionIds = data?.removedTransactionIds || [];
+      const failedItemIds = new Set(data?.failedItemIds || []);
       setFinance((d) => ({
         ...d,
         // Keep plaid-linked payment methods deterministic and source-tagged.
         accounts: [
-          ...(d.accounts || []).filter((a) => a?.source !== "plaid"),
+          ...(d.accounts || []).filter((a) => a?.source !== "plaid" || failedItemIds.has(a.plaidItemId)),
           ...meta.map((item) => ({
             id: `plaid-account-${item.itemId}`,
             name: String(item.institutionName || "Bank"),
@@ -1694,10 +1670,16 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
             plaidItemId: item.itemId,
           })),
         ],
-        transactions: mergePlaidTransactions(d.transactions, incoming, plaidUpdates),
-        linkedPlaidItems: meta.length > 0 ? meta : d.linkedPlaidItems || [],
+        transactions: mergePlaidTransactions(d.transactions, incoming, plaidUpdates, removedTransactionIds),
+        linkedPlaidItems: meta.length > 0
+          ? [...(d.linkedPlaidItems || []).filter((item) => failedItemIds.has(item.itemId)), ...meta]
+          : d.linkedPlaidItems || [],
       }));
-      banners.push({ message: "Bank transactions synced", tone: "success", durationMs: 3400 });
+      banners.push({
+        message: failedItemIds.size ? "Some bank connections could not sync. Try again." : "Bank transactions synced",
+        tone: failedItemIds.size ? "error" : "success",
+        durationMs: failedItemIds.size ? 5200 : 3400,
+      });
     } catch (e) {
       banners.push({ tone: "error", message: e?.message || "Could not sync bank data", durationMs: 5200 });
     }
@@ -1723,18 +1705,8 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
         transactions: nextTx,
       }));
 
-      // Persist immediately so periodic refresh cannot re-hydrate removed items.
-      if (cloudUserId) {
-        setDoc(
-          financeDocRef(cloudUserId),
-          {
-            accounts: nextAccounts,
-            linkedPlaidItems: nextLinked,
-            transactions: nextTx,
-          },
-          { merge: true }
-        ).catch(() => {});
-      }
+      // The normal transactional save applies these explicit deletions without
+      // replacing unrelated rows. The server also cleans up this item's records.
       try {
         await cloudFns.removePlaidItem(itemId);
         banners.push({
@@ -1746,7 +1718,7 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
         banners.push({ tone: "error", message: e?.message || "Could not remove bank account", durationMs: 6000 });
       }
     },
-    [accounts, banners, cloudUserId, linkedPlaidItems, transactions]
+    [accounts, banners, linkedPlaidItems, transactions]
   );
 
   const handlePlaidItemLinked = useCallback(

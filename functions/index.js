@@ -8,6 +8,8 @@ const vision = require("@google-cloud/vision");
 const { Configuration, PlaidApi, PlaidEnvironments } = require("plaid");
 const { parseReceiptText } = require("./receiptParse");
 const { generateFinanceAnswer } = require("./services/openaiClient");
+const { verifyPlaidWebhook } = require("./services/plaidWebhookVerification");
+const { collectPlaidUpdates, persistPlaidUpdates } = require("./services/plaidSync");
 
 admin.initializeApp();
 
@@ -384,10 +386,9 @@ function plaidTransactionToRow(t, institutionName, paymentMethodLabel, itemId) {
     category,
     paymentMethod: label,
     date: t.date || new Date().toISOString().slice(0, 10),
-    receiptImage: undefined,
     source: "plaid",
-    plaidItemId: itemId || undefined,
-    plaidAccountId: t.account_id || undefined,
+    ...(itemId ? { plaidItemId: itemId } : {}),
+    ...(t.account_id ? { plaidAccountId: t.account_id } : {}),
     plaidTransactionId: t.transaction_id,
     userEdited: false,
   };
@@ -409,36 +410,6 @@ function getPlaidClient() {
     },
   });
   return new PlaidApi(configuration);
-}
-
-/** Merge Plaid added + modified rows into stored finance.transactions (respect userEdited). */
-function applyPlaidRowsToFinanceTransactions(existing, added, updates) {
-  const list = Array.isArray(existing) ? [...existing] : [];
-  const indexByPlaid = new Map();
-  list.forEach((t, i) => {
-    if (t.plaidTransactionId) indexByPlaid.set(t.plaidTransactionId, i);
-  });
-  for (const row of updates || []) {
-    if (!row || !row.plaidTransactionId) continue;
-    const idx = indexByPlaid.get(row.plaidTransactionId);
-    if (idx !== undefined) {
-      const prev = list[idx];
-      if (!prev.userEdited) {
-        list[idx] = { ...prev, ...row, id: prev.id, userEdited: prev.userEdited };
-      }
-    } else {
-      list.push(row);
-      indexByPlaid.set(row.plaidTransactionId, list.length - 1);
-    }
-  }
-  const seen = new Set(list.map((x) => x.plaidTransactionId).filter(Boolean));
-  for (const row of added || []) {
-    if (!row) continue;
-    if (row.plaidTransactionId && seen.has(row.plaidTransactionId)) continue;
-    list.push(row);
-    if (row.plaidTransactionId) seen.add(row.plaidTransactionId);
-  }
-  return list;
 }
 
 function plaidAccessRef(uid, itemId) {
@@ -664,15 +635,15 @@ exports.syncPlaidTransactions = onCall({ region: "us-central1", memory: "512MiB"
 
   const newTransactions = [];
   const plaidUpdates = [];
+  const removedTransactionIds = [];
   const linkedItemsMeta = [];
+  const failedItemIds = [];
 
   for (const docSnap of snap.docs) {
     const itemId = docSnap.id;
     const { accessToken, cursor: prevCursor } = docSnap.data();
     if (!accessToken) continue;
 
-    let cursor = prevCursor || null;
-    let hasMore = true;
     let institutionName = "Linked card";
     let mask = "";
     try {
@@ -688,27 +659,21 @@ exports.syncPlaidTransactions = onCall({ region: "us-central1", memory: "512MiB"
     }
 
     try {
-      while (hasMore) {
-        const res = await client.transactionsSync({
-          access_token: accessToken,
-          cursor: cursor || undefined,
-          count: 200,
-        });
-        const data = res.data;
-        hasMore = data.has_more;
-        cursor = data.next_cursor;
-
-        for (const t of data.added || []) {
-          const row = plaidTransactionToRow(t, institutionName, `${institutionName} (Plaid)`, itemId);
-          if (row) newTransactions.push(row);
-        }
-        for (const t of data.modified || []) {
-          const row = plaidTransactionToRow(t, institutionName, `${institutionName} (Plaid)`, itemId);
-          if (row) plaidUpdates.push(row);
-        }
-      }
-
-      await plaidAccessRef(uid, itemId).set({ cursor, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      const updates = await collectPlaidUpdates(client, accessToken, prevCursor, (t) =>
+        plaidTransactionToRow(t, institutionName, `${institutionName} (Plaid)`, itemId)
+      );
+      await persistPlaidUpdates({
+        db: admin.firestore(),
+        accessRef: plaidAccessRef(uid, itemId),
+        financeRef: admin.firestore().doc(`users/${uid}/profile/finance`),
+        accessToken,
+        startCursor: prevCursor,
+        updates,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      newTransactions.push(...updates.added);
+      plaidUpdates.push(...updates.modified);
+      removedTransactionIds.push(...updates.removed);
 
       linkedItemsMeta.push({
         itemId,
@@ -718,10 +683,11 @@ exports.syncPlaidTransactions = onCall({ region: "us-central1", memory: "512MiB"
       });
     } catch (e) {
       logger.error("transactionsSync", itemId, e);
+      failedItemIds.push(itemId);
     }
   }
 
-  return { transactions: newTransactions, plaidUpdates, linkedPlaidItems: linkedItemsMeta };
+  return { transactions: newTransactions, plaidUpdates, removedTransactionIds, linkedPlaidItems: linkedItemsMeta, failedItemIds };
 });
 
 exports.chatFinance = onCall({ region: "us-central1", memory: "512MiB" }, async (request) => {
@@ -783,11 +749,32 @@ exports.plaidWebhook = onRequest({ region: "us-central1" }, async (req, res) => 
     res.status(405).send("Method Not Allowed");
     return;
   }
-  const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+  const client = getPlaidClient();
+  if (!client) {
+    res.status(503).send("Plaid is not configured");
+    return;
+  }
+  const verified = await verifyPlaidWebhook({
+    token: req.get("Plaid-Verification"),
+    rawBody: req.rawBody,
+    client,
+  });
+  if (!verified) {
+    res.status(401).send("Invalid webhook signature");
+    return;
+  }
+  let body;
+  try {
+    body = JSON.parse(req.rawBody.toString("utf8"));
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("Invalid body");
+  } catch {
+    res.status(400).send("Invalid webhook body");
+    return;
+  }
   const { webhook_type: webhookType, item_id: itemId } = body;
   logger.info("plaidWebhook", webhookType, itemId);
 
-  if (webhookType === "TRANSACTIONS" && itemId) {
+  if (webhookType === "TRANSACTIONS" && typeof itemId === "string" && itemId && !itemId.includes("/")) {
     const lookup = await itemLookupRef(itemId).get();
     if (!lookup.exists) {
       res.status(200).send("ok");
@@ -799,21 +786,16 @@ exports.plaidWebhook = onRequest({ region: "us-central1" }, async (req, res) => 
       return;
     }
     try {
-      const client = getPlaidClient();
-      if (!client) {
-        res.status(200).send("ok");
-        return;
-      }
       const accessDoc = await plaidAccessRef(uid, itemId).get();
       if (!accessDoc.exists) {
         res.status(200).send("ok");
         return;
       }
       const { accessToken, cursor: prevCursor } = accessDoc.data();
-      let cursor = prevCursor || null;
-      let hasMore = true;
-      const addedRows = [];
-      const modifiedRows = [];
+      if (!accessToken) {
+        res.status(200).send("ok");
+        return;
+      }
       let institutionName = "Linked account";
       try {
         const itemRes = await client.itemGet({ access_token: accessToken });
@@ -826,38 +808,22 @@ exports.plaidWebhook = onRequest({ region: "us-central1" }, async (req, res) => 
         logger.warn("webhook itemGet", e?.message);
       }
       const payLabel = `${institutionName} (Plaid)`;
-      while (hasMore) {
-        const r = await client.transactionsSync({
-          access_token: accessToken,
-          cursor: cursor || undefined,
-          count: 200,
-        });
-        const data = r.data;
-        hasMore = data.has_more;
-        cursor = data.next_cursor;
-        for (const t of data.added || []) {
-          const row = plaidTransactionToRow(t, institutionName, payLabel, itemId);
-          if (row) addedRows.push(row);
-        }
-        for (const t of data.modified || []) {
-          const row = plaidTransactionToRow(t, institutionName, payLabel, itemId);
-          if (row) modifiedRows.push(row);
-        }
-      }
-      await plaidAccessRef(uid, itemId).set({ cursor, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-
-      if (addedRows.length > 0 || modifiedRows.length > 0) {
-        const ref = admin.firestore().doc(`users/${uid}/profile/finance`);
-        await admin.firestore().runTransaction(async (tx) => {
-          const doc = await tx.get(ref);
-          const d = doc.data() || {};
-          const existing = Array.isArray(d.transactions) ? d.transactions : [];
-          const merged = applyPlaidRowsToFinanceTransactions(existing, addedRows, modifiedRows);
-          tx.set(ref, { transactions: merged }, { merge: true });
-        });
-      }
+      const updates = await collectPlaidUpdates(client, accessToken, prevCursor, (t) =>
+        plaidTransactionToRow(t, institutionName, payLabel, itemId)
+      );
+      await persistPlaidUpdates({
+        db: admin.firestore(),
+        accessRef: plaidAccessRef(uid, itemId),
+        financeRef: admin.firestore().doc(`users/${uid}/profile/finance`),
+        accessToken,
+        startCursor: prevCursor,
+        updates,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
     } catch (e) {
       logger.error("webhook sync failed", e);
+      res.status(500).send("Sync failed; retry later");
+      return;
     }
   }
 

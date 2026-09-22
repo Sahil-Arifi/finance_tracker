@@ -4,8 +4,9 @@
  * @param {Array} existing
  * @param {Array} incoming
  * @param {Array} [updates] Same shape as incoming; matched by plaidTransactionId
+ * @param {Array<string>} [removedTransactionIds] Plaid rows removed upstream, including pending replacements
  */
-export function mergePlaidTransactions(existing, incoming, updates) {
+export function mergePlaidTransactions(existing, incoming, updates, removedTransactionIds = []) {
   const list = Array.isArray(existing) ? [...existing] : [];
   const indexByPlaid = new Map();
   list.forEach((t, i) => {
@@ -33,5 +34,6 @@ export function mergePlaidTransactions(existing, incoming, updates) {
     list.push(t);
     if (t.plaidTransactionId) seen.add(t.plaidTransactionId);
   }
-  return list;
+  const removed = new Set(removedTransactionIds);
+  return list.filter((row) => !removed.has(row?.plaidTransactionId));
 }
