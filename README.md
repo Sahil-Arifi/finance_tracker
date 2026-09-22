@@ -40,7 +40,7 @@ flowchart TD
 | Finance assistant | OpenAI `gpt-4.1-mini`, using a bounded summary of the signed in user's data |
 | Packaging | Vite PWA, Capacitor Android/iOS scaffolding, Electron Windows packaging configuration |
 
-The bank merge logic preserves transactions marked as manually edited. Subscription detection is a heuristic over transaction history. Bank account balances in the interface are not a live balances integration.
+The bank merge logic preserves manual edits to modified transactions and removes records that Plaid deletes upstream. Webhooks verify the Plaid signature and the hash of the original request body before accessing stored data. Transaction changes and the Plaid cursor commit in one Firestore transaction. Subscription detection is a heuristic over transaction history. Bank account balances in the interface are not a live balances integration.
 
 ## Run locally
 
@@ -103,6 +103,7 @@ Optional App Check configuration is described in [.env.example](.env.example). I
 | `npm run build` | Create the web build in `dist/` |
 | `npm run preview` | Preview the built web app |
 | `npm run lint` | Run the repository's ESLint configuration |
+| `npm test` | Run the Plaid verification, sync, and merge regression tests |
 | `npm run cap:build` | Build the web app and sync assets into the native projects |
 | `npm run electron:dev` | Build and launch the Electron wrapper |
 | `npm run electron:build` | Build the configured Windows desktop package |
@@ -125,4 +126,6 @@ Android and iOS development require their native toolchains. The platform folder
 
 ExpensePilot is an actively developed portfolio application. The repository contains the integrations described above; their live availability depends on deployment configuration and provider accounts.
 
-The current default branch does not have an automated test suite. Priorities include verifying Plaid webhook signatures, applying removed transactions during sync, and persisting imported data before advancing its cursor. The finance document currently stores transaction arrays, which limits scalability and requires more work on concurrent updates. AI answers and receipt extraction can be incomplete or incorrect and should be checked against the source records.
+The focused Node test suite covers webhook signatures, exact body verification, replay age, transaction removals, pagination retries, and atomic cursor persistence. Install both root and Functions dependencies before running `npm test`. These tests use generated signing keys and mocked storage; they do not certify a live bank integration. The full repository lint command still reports existing UI issues and an unused backend helper.
+
+The finance document currently stores transaction arrays, which limits scalability. Atomic server sync protects its cursor, but client saves still require further conflict handling for concurrent devices and background updates. Validate the full flow with Plaid Sandbox before deploying integration changes. AI answers and receipt extraction can be incomplete or incorrect and should be checked against the source records.

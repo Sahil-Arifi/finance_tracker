@@ -1680,11 +1680,13 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
       const incoming = data?.transactions || [];
       const plaidUpdates = data?.plaidUpdates || [];
       const meta = data?.linkedPlaidItems || [];
+      const removedTransactionIds = data?.removedTransactionIds || [];
+      const failedItemIds = new Set(data?.failedItemIds || []);
       setFinance((d) => ({
         ...d,
         // Keep plaid-linked payment methods deterministic and source-tagged.
         accounts: [
-          ...(d.accounts || []).filter((a) => a?.source !== "plaid"),
+          ...(d.accounts || []).filter((a) => a?.source !== "plaid" || failedItemIds.has(a.plaidItemId)),
           ...meta.map((item) => ({
             id: `plaid-account-${item.itemId}`,
             name: String(item.institutionName || "Bank"),
@@ -1694,10 +1696,16 @@ function FinanceApp({ cloudUserId = null, userEmail = null, onSignOut = null }) 
             plaidItemId: item.itemId,
           })),
         ],
-        transactions: mergePlaidTransactions(d.transactions, incoming, plaidUpdates),
-        linkedPlaidItems: meta.length > 0 ? meta : d.linkedPlaidItems || [],
+        transactions: mergePlaidTransactions(d.transactions, incoming, plaidUpdates, removedTransactionIds),
+        linkedPlaidItems: meta.length > 0
+          ? [...(d.linkedPlaidItems || []).filter((item) => failedItemIds.has(item.itemId)), ...meta]
+          : d.linkedPlaidItems || [],
       }));
-      banners.push({ message: "Bank transactions synced", tone: "success", durationMs: 3400 });
+      banners.push({
+        message: failedItemIds.size ? "Some bank connections could not sync. Try again." : "Bank transactions synced",
+        tone: failedItemIds.size ? "error" : "success",
+        durationMs: failedItemIds.size ? 5200 : 3400,
+      });
     } catch (e) {
       banners.push({ tone: "error", message: e?.message || "Could not sync bank data", durationMs: 5200 });
     }

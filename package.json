@@ -14,7 +14,8 @@
     "cap:sync": "npx cap sync",
     "cap:build": "npm run build && npx cap sync",
     "electron:dev": "npm run build && electron .",
-    "electron:build": "npm run build && electron-builder --win --publish never --dir"
+    "electron:build": "npm run build && electron-builder --win --publish never --dir",
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
